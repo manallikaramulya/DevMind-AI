@@ -1,73 +1,60 @@
-# DevMind AI – Persistent-Memory AI Coding & Debugging Assistant
+# DevMind AI
+## Persistent-Memory AI Coding Assistant
 
-DevMind AI is an AI-powered coding and debugging assistant built for developers. Unlike typical session-bound chat models, DevMind retains persistent memory of your project's codebase, past bugs, architectural choices, and context across sessions.
+DevMind AI uses Hindsight Cloud to retain and retrieve project information across sessions.
 
----
+### Features
+- RETAIN: Save project information.
+- RECALL: Retrieve stored memories.
+- REFLECT: Reason using stored context.
+- Chat interface connected to FastAPI.
+- Persistent project memory dashboard.
 
-## 📁 Project Structure
+### Technology Stack
+- Frontend: HTML, CSS, Vanilla JavaScript
+- Backend: Python FastAPI
+- Memory: Hindsight Cloud
 
-```text
-DevMindAI/
-├── frontend/
-│   ├── index.html       # Main UI structure (sidebar for memory, chat workspace)
-│   ├── style.css        # Modern developer dark-theme styles
-│   └── script.js        # Vanilla JS for user interaction & backend communication
-│
-├── backend/
-│   ├── main.py          # FastAPI application entry point with CORS & starter endpoints
-│   ├── requirements.txt # Python package dependencies (FastAPI, Uvicorn, etc.)
-│   └── .env.example     # Template for configuration & API keys
-│
-├── .gitignore           # Ignores virtual environments, secrets, databases, and cache
-└── README.md            # Project documentation and setup guide
-```
+### Setup
 
----
+1. Clone the repository:
+   git clone https://github.com/manallikaramulya/DevMind-AI.git
 
-## 🚀 Overview of Components
+2. Enter the backend folder:
+   cd DevMind-AI/backend
 
-### 1. Frontend (`frontend/`)
-- **`index.html`**: A two-panel layout featuring an active persistent memory sidebar and a primary coding/debugging assistant chat area.
-- **`style.css`**: Responsive styling featuring a dark theme suited for developers.
-- **`script.js`**: Handles user input, queries the backend health and chat APIs, and dynamically updates the chat view without any heavy frontend frameworks.
-
-### 2. Backend (`backend/`)
-- **`main.py`**: A lightweight Python FastAPI server with CORS enabled. It provides starter endpoints:
-  - `GET /` — API root information
-  - `GET /api/health` — Health check endpoint used by the frontend
-  - `POST /api/chat` — Starter chat/query endpoint ready for LLM & memory engine integration
-- **`requirements.txt`**: Minimal requirements file listing `fastapi`, `uvicorn`, `pydantic`, and `python-dotenv`.
-- **`.env.example`**: Outlines keys for AI model providers and persistent memory storage.
-
----
-
-## 🛠️ Getting Started (When Ready to Run)
-
-### Backend Setup
-1. Open a terminal in the `backend/` directory:
-   ```bash
-   cd backend
-   ```
-2. Create and activate a Python virtual environment:
-   ```bash
+3. Create a virtual environment:
    python -m venv .venv
-   # Windows:
-   .venv\Scripts\activate
-   # macOS/Linux:
-   source .venv/bin/activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Copy the environment file:
-   ```bash
-   cp .env.example .env
-   ```
-5. Run the server:
-   ```bash
-   uvicorn main:app --reload --port 8000
-   ```
 
-### Frontend Setup
-Open `frontend/index.html` directly in your browser or serve it using any simple local server (such as VS Code Live Server or `python -m http.server`).
+4. Activate it:
+   .venv\Scripts\activate
+
+5. Install dependencies:
+   pip install -r requirements.txt
+
+6. Create backend/.env using .env.example and add your Hindsight credentials. Never upload your actual API key.
+
+7. Start the backend:
+   python -m uvicorn main:app --reload --port 8000
+
+### Frontend
+Open frontend/index.html in your browser.
+
+### API Endpoints
+- GET /
+- GET /api/health
+- POST /api/chat
+- POST /api/memory/retain
+- POST /api/memory/recall
+- POST /api/memory/reflect
+
+### Current Status
+The FastAPI backend and Hindsight RETAIN, RECALL and REFLECT operations have been tested. The current chat uses Hindsight REFLECT. A separate coding LLM integration is still pending.
+
+### Future Enhancements
+- Coding LLM integration
+- Improved memory display
+- Verified debugging workflows
+- Deployment and expanded testing
+
+Developed as a team project.
