@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DevMind AI – Persistent-Memory AI Coding &amp; Debugging Assistant</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Header -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a5 5 0 0 1 5 5v1a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-1v1a5 5 0 0 1-10 0v-1H5a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2V7a5 5 0 0 1 5-5z"></path>
+            <path d="M9 12h6"></path>
+            <path d="M12 9v6"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>DevMind <span class="accent-text">AI</span></h1>
+          <span class="sub-badge">Persistent Memory Engine</span>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <div class="project-pill" title="Current Active Workspace">
+          <span class="pill-dot"></span>
+          <span class="pill-label">Project:</span>
+          <span class="pill-val">ShopSphere-Backend</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Backend API Status -->
+        <div class="status-indicator" id="backend-status" title="Local FastAPI Connection">
+          <span class="status-dot"></span>
+          <span class="status-text">Backend: Checking...</span>
+        </div>
+
+        <!-- Toggle Memory Drawer Button (Useful for laptop screens) -->
+        <button id="toggle-memory-btn" class="icon-toggle-btn" title="Toggle Memory Panel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
+          </svg>
+          <span class="btn-text">Memory Panel</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <div class="workspace-body">
+      <!-- 1. LEFT SIDEBAR: Project Info & Memory Status -->
+      <aside class="sidebar-left">
+        <!-- Project Info -->
+        <div class="sidebar-section project-card">
+          <div class="section-label">WORKSPACE CONTEXT</div>
+          <div class="project-header">
+            <div class="project-avatar">PY</div>
+            <div class="project-meta">
+              <h3>ShopSphere-API</h3>
+              <p>FastAPI + PostgreSQL + Redis</p>
+            </div>
+          </div>
+          <div class="repo-stats">
+            <div class="stat-item">
+              <span class="stat-number">48</span>
+              <span class="stat-label">Files Tracked</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">14</span>
+              <span class="stat-label">Memory Nodes</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Memory Status Widget -->
+        <div class="sidebar-section memory-engine-card">
+          <div class="section-label">MEMORY ENGINE STATUS</div>
+          <div class="memory-status-box">
+            <div class="status-row">
+              <span class="status-title">Engine State</span>
+              <span class="badge badge-purple">Active (Local Mode)</span>
+            </div>
+            <div class="status-row">
+              <span class="status-title">Hindsight Memory</span>
+              <!-- Explicitly noted as standby/not connected -->
+              <span class="badge badge-standby" title="Hindsight integration is pending setup">Standby / Not Connected</span>
+            </div>
+            <div class="status-row">
+              <span class="status-title">Context Index</span>
+              <span class="text-cyan">Synced (14 items)</span>
+            </div>
+            <div class="status-row">
+              <span class="status-title">Recall Accuracy</span>
+              <span class="text-purple">98.4%</span>
+            </div>
+          </div>
+
+          <div class="memory-progress">
+            <div class="progress-labels">
+              <span>Memory Capacity</span>
+              <span>14 / 200 Nodes</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 14%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Debugging Prompts -->
+        <div class="sidebar-section">
+          <div class="section-label">QUICK DEBUG TEMPLATES</div>
+          <div class="quick-prompts">
+            <button class="prompt-chip" data-prompt="Analyze potential SQLAlchemy connection leaks in our async DB session pool.">
+              <span class="chip-icon">⚡</span> DB Pool Leak Check
+            </button>
+            <button class="prompt-chip" data-prompt="Verify JWT revocation logic against our Redis blacklist architecture.">
+              <span class="chip-icon">🔑</span> JWT Blacklist Check
+            </button>
+            <button class="prompt-chip" data-prompt="Explain why Stripe webhook handler fails on concurrent duplicate events.">
+              <span class="chip-icon">💳</span> Webhook Idempotency
+            </button>
+          </div>
+        </div>
+
+        <!-- Persistent Memory Retention Notice -->
+        <div class="sidebar-footer">
+          <div class="retention-info">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span>DevMind recalls project decisions across all sessions.</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 2. MAIN CHAT & DEBUGGING WORKSPACE -->
+      <main class="chat-main">
+        <!-- Chat Stream Header -->
+        <div class="chat-top-bar">
+          <div class="session-info">
+            <h2>Active Debugging Session</h2>
+            <p>Session #204 &bull; Cross-referencing 14 persistent project memories</p>
+          </div>
+          <div class="chat-actions">
+            <button id="clear-chat-btn" class="action-btn" title="Clear Chat History">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat Messages History -->
+        <div class="chat-stream" id="chat-stream">
+          <!-- Sample Message 1: User Request -->
+          <div class="chat-message user-msg">
+            <div class="msg-avatar">DEV</div>
+            <div class="msg-bubble">
+              <div class="msg-meta">
+                <span class="author">You</span>
+                <span class="time">10:42 AM</span>
+              </div>
+              <div class="msg-content">
+                <p>We are hitting a connection pool timeout under load in our <code>GET /orders/stream</code> endpoint. Here is the router handler and the traceback:</p>
+                
+                <div class="code-block">
+                  <div class="code-header">
+                    <span class="code-lang">python</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                  </div>
+                  <pre><code>@router.get("/orders/stream")
+async def stream_orders(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Order).where(Order.status == "pending"))
+    orders = result.scalars().all()
+    # Processing long background worker...
+    await process_order_batch(orders)
+    return {"count": len(orders)}</code></pre>
+                </div>
+
+                <div class="error-block">
+                  <div class="error-header">
+                    <span class="error-title">⚠️ Error Traceback</span>
+                  </div>
+                  <pre><code>sqlalchemy.exc.TimeoutError: QueuePool limit of size 5 overflow 10 reached, connection timed out, timeout 30.00</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sample Message 2: DevMind AI Reply With Persistent Memory Recall -->
+          <div class="chat-message assistant-msg">
+            <div class="msg-avatar ai-avatar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a5 5 0 0 1 5 5v1a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-1v1a5 5 0 0 1-10 0v-1H5a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2V7a5 5 0 0 1 5-5z"></path>
+                <path d="M9 12h6"></path>
+              </svg>
+            </div>
+            <div class="msg-bubble">
+              <div class="msg-meta">
+                <span class="author">DevMind AI</span>
+                <span class="time">10:42 AM</span>
+                <span class="recalled-chip" title="Recalled from Persistent Memory">
+                  <span class="chip-sparkle">✦</span> Recalled 2 Project Decisions
+                </span>
+              </div>
+              <div class="msg-content">
+                <p>I recalled our architecture decision from <strong>Commit #84</strong> regarding PostgreSQL connection pooling on ShopSphere:</p>
+
+                <div class="memory-callout">
+                  <div class="callout-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                    <span>Persistent Memory #MEM-004: DB Session Lifecycle Rule</span>
+                  </div>
+                  <p>In our architecture, <code>get_db</code> holds the transaction lock. Because <code>process_order_batch()</code> performs an asynchronous I/O batch (averaging 4.2s), the DB connection remains checked out from the pool while awaiting the worker, exhausting the 5 connection limit.</p>
+                </div>
+
+                <p><strong>Solution:</strong> Release the database session back to the pool <em>before</em> running the background processing, or run the query inside a scoped context manager:</p>
+
+                <div class="code-block">
+                  <div class="code-header">
+                    <span class="code-lang">python (Recommended Fix)</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                  </div>
+                  <pre><code>@router.get("/orders/stream")
+async def stream_orders():
+    # 1. Fetch orders in an immediate scoped session
+    async with async_session_factory() as db:
+        result = await db.execute(select(Order).where(Order.status == "pending"))
+        orders = result.scalars().all()
+    # 2. Connection is immediately released back to QueuePool here!
+    
+    # 3. Heavy I/O processing proceeds without hogging DB connections
+    await process_order_batch(orders)
+    return {"count": len(orders)}</code></pre>
+                </div>
+
+                <p>This will prevent pool starvation under concurrent requests while preserving our established PostgreSQL connection ceiling.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Input Composer Section -->
+        <div class="composer-container">
+          <!-- Input Drawer Toggles -->
+          <div class="composer-toolbar">
+            <span class="toolbar-hint">Input Mode:</span>
+            <button type="button" id="toggle-code-input" class="toolbar-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+              <span>+ Add Code Snippet</span>
+            </button>
+            <button type="button" id="toggle-error-input" class="toolbar-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              <span>+ Add Error / Traceback</span>
+            </button>
+            <div class="shortcut-hint">Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to submit</div>
+          </div>
+
+          <!-- Code Snippet Drawer (Collapsible) -->
+          <div id="code-drawer" class="input-drawer hidden">
+            <div class="drawer-header">
+              <label for="code-input">
+                <span class="drawer-icon">💻</span> Paste Code Snippet:
+              </label>
+              <select id="code-lang-select" class="drawer-select">
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript / TypeScript</option>
+                <option value="sql">SQL</option>
+                <option value="json">JSON</option>
+                <option value="bash">Bash / Shell</option>
+                <option value="text">Plain Text</option>
+              </select>
+              <button type="button" class="drawer-close-btn" id="close-code-drawer">&times;</button>
+            </div>
+            <textarea
+              id="code-input"
+              rows="4"
+              placeholder="# Paste relevant functions, models, or configurations here..."
+              spellcheck="false"
+            ></textarea>
+          </div>
+
+          <!-- Error / Traceback Drawer (Collapsible) -->
+          <div id="error-drawer" class="input-drawer hidden">
+            <div class="drawer-header">
+              <label for="error-input">
+                <span class="drawer-icon">⚠️</span> Paste Terminal Output / Error Stack Trace:
+              </label>
+              <button type="button" class="drawer-close-btn" id="close-error-drawer">&times;</button>
+            </div>
+            <textarea
+              id="error-input"
+              rows="3"
+              placeholder="Paste terminal exception, compiler error, or HTTP status response..."
+              spellcheck="false"
+            ></textarea>
+          </div>
+
+          <!-- Main Prompt Form -->
+          <form id="chat-form" class="composer-form">
+            <div class="prompt-input-wrapper">
+              <textarea
+                id="user-input"
+                rows="2"
+                placeholder="Ask DevMind a question, describe a bug, or request an architectural review..."
+                required
+              ></textarea>
+            </div>
+
+            <!-- Attractive 'Ask DevMind' Button -->
+            <button type="submit" id="ask-btn" class="ask-devmind-btn">
+              <span class="btn-glow"></span>
+              <span class="btn-content">
+                <svg class="sparkle-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z"></path>
+                </svg>
+                Ask DevMind
+              </span>
+            </button>
+          </form>
+        </div>
+      </main>
+
+      <!-- 3. RIGHT PANEL: Recalled Project Knowledge & Persistent Memory -->
+      <aside class="sidebar-right" id="memory-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            <h3>Recalled Knowledge</h3>
+          </div>
+          <span class="panel-count" id="memory-count-badge">4 active</span>
+        </div>
+
+        <!-- Search Knowledge -->
+        <div class="memory-search-bar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="memory-search-input" placeholder="Search project memories..." />
+        </div>
+
+        <!-- Filter Tags -->
+        <div class="memory-filter-tabs">
+          <button class="filter-tab active" data-filter="all">All</button>
+          <button class="filter-tab" data-filter="architecture">Architecture</button>
+          <button class="filter-tab" data-filter="bugs">Bug Fixes</button>
+          <button class="filter-tab" data-filter="rules">Rules</button>
+        </div>
+
+        <!-- Memory Cards Stream -->
+        <div class="memory-cards-container" id="memory-cards-container">
+          <!-- Card 1: Architecture -->
+          <div class="memory-card" data-category="architecture">
+            <div class="card-top">
+              <span class="memory-tag tag-purple">#Architecture</span>
+              <span class="memory-id">#MEM-004</span>
+            </div>
+            <h4>SQLAlchemy 2.0 Async Session Rules</h4>
+            <p>Database sessions in request handlers must be short-lived. Avoid holding session locks during async worker tasks or external API calls.</p>
+            <div class="card-footer">
+              <span class="card-date">Updated 2 days ago</span>
+              <span class="card-confidence">Confidence: 99%</span>
+            </div>
+          </div>
+
+          <!-- Card 2: Bug Fix -->
+          <div class="memory-card" data-category="bugs">
+            <div class="card-top">
+              <span class="memory-tag tag-cyan">#Bug Fix</span>
+              <span class="memory-id">#MEM-007</span>
+            </div>
+            <h4>Redis Token Blacklist Race Condition</h4>
+            <p>Resolved simultaneous logout requests by implementing Redis <code>SETNX</code> with a 15-minute TTL rather than sequential read-then-write keys.</p>
+            <div class="card-footer">
+              <span class="card-date">Updated 5 days ago</span>
+              <span class="card-confidence">Confidence: 95%</span>
+            </div>
+          </div>
+
+          <!-- Card 3: Architecture Rule -->
+          <div class="memory-card" data-category="rules">
+            <div class="card-top">
+              <span class="memory-tag tag-purple">#Rules</span>
+              <span class="memory-id">#MEM-011</span>
+            </div>
+            <h4>Stripe Webhook Idempotency Standard</h4>
+            <p>All webhook endpoints must check <code>event_id</code> in the Postgres <code>processed_webhooks</code> table before dispatching payment events.</p>
+            <div class="card-footer">
+              <span class="card-date">Updated 1 week ago</span>
+              <span class="card-confidence">Confidence: 97%</span>
+            </div>
+          </div>
+
+          <!-- Card 4: Architecture Constraint -->
+          <div class="memory-card" data-category="architecture">
+            <div class="card-top">
+              <span class="memory-tag tag-purple">#Architecture</span>
+              <span class="memory-id">#MEM-014</span>
+            </div>
+            <h4>PostgreSQL Connection Pool Constraints</h4>
+            <p>Max client pool configured to 5 with overflow 10. PgBouncer runs in transaction pooling mode on port 6432.</p>
+            <div class="card-footer">
+              <span class="card-date">Updated 2 weeks ago</span>
+              <span class="card-confidence">Confidence: 100%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Manual Memory Button / Section -->
+        <div class="add-memory-box">
+          <button id="add-memory-btn" class="add-memory-trigger">
+            <span>+ Pin New Architecture Rule</span>
+          </button>
+          <div id="new-memory-form" class="new-memory-form hidden">
+            <input type="text" id="new-mem-title" placeholder="Decision title..." />
+            <textarea id="new-mem-body" rows="2" placeholder="Describe the pattern or bug fix to retain in memory..."></textarea>
+            <div class="new-mem-actions">
+              <button type="button" id="save-mem-btn" class="save-mem-btn">Save to Memory</button>
+              <button type="button" id="cancel-mem-btn" class="cancel-mem-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
