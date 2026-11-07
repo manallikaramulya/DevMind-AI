@@ -8,6 +8,83 @@ const API_BASE_URL = "http://127.0.0.1:8000";
 // Project Memories Database (Local In-Memory Cache)
 let projectMemories = [];
 
+function renderReplyHtml(text) {
+  const parts = String(text || "").split("```");
+  return parts.map((part, i) => {
+    if (i % 2 === 1) {
+      const lines = part.split("\n");
+      const lang = lines[0].trim() || "python";
+      const code = lines.slice(1).join("\n").replace(/\n$/, "");
+      return `<div class="code-block"><div class="code-header"><span class="code-lang">${escapeHtml(lang)}</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>${escapeHtml(code)}</code></pre></div>`;
+    }
+    const clean = part.trim();
+    return clean ? `<p>${escapeHtml(clean).replace(/\n/g, "<br>")}</p>` : "";
+  }).join("");
+}
+
+function appendBackendReply(data, query) {
+  const chatStream = document.getElementById("chat-stream");
+  const msgDiv = document.createElement("div");
+  msgDiv.className = "chat-message assistant-msg";
+
+  let chip;
+  if (data.isError) {
+    chip = "Error";
+  } else if (data.recalled_fix) {
+    chip = `✦ Memory recalled (${data.memory_count} retrieved)`;
+  } else {
+    chip = `${data.memory_count || 0} memories retrieved, no matching fix`;
+  }
+
+  msgDiv.innerHTML = `
+    <div class="msg-avatar ai-avatar">AI</div>
+    <div class="msg-bubble">
+      <div class="msg-meta">
+        <span class="author">DevMind AI</span>
+        <span class="time">${getCurrentTime()}</span>
+        <span class="recalled-chip">${escapeHtml(chip)}</span>
+      </div>
+      <div class="msg-content">${renderReplyHtml(data.reply)}</div>
+    </div>
+  `;
+  if (!data.isError && query) {
+    const bar = document.createElement("div");
+    bar.style.cssText = "margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;";
+    bar.innerHTML = `<span style="font-size:13px;">Did this fix work?</span>
+      <button type="button" class="copy-btn yes-btn">✅ Yes, save it</button>
+      <button type="button" class="copy-btn no-btn">❌ No</button>
+      <span class="verify-status" style="font-size:13px;"></span>`;
+    const status = bar.querySelector(".verify-status");
+
+    bar.querySelector(".yes-btn").addEventListener("click", async () => {
+      status.textContent = "Saving to Hindsight...";
+      const parts = String(data.reply || "").split("\n\n---\n\n");
+      const fixText = parts[parts.length - 1];
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/memory/verify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: query, reply: fixText })
+        });
+        if (!res.ok) throw new Error("Server status " + res.status);
+        status.textContent = "✅ Verified fix saved to Hindsight memory.";
+        bar.querySelectorAll("button").forEach(b => b.disabled = true);
+      } catch (e) {
+        status.textContent = "Save failed: " + e.message;
+      }
+    });
+
+    bar.querySelector(".no-btn").addEventListener("click", () => {
+      status.textContent = "Not saved. Unverified fixes are never stored.";
+      bar.querySelectorAll("button").forEach(b => b.disabled = true);
+    });
+
+    msgDiv.querySelector(".msg-content").appendChild(bar);
+  }
+  chatStream.appendChild(msgDiv);
+  chatStream.scrollTop = chatStream.scrollHeight;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   // DOM Elements
   const statusBadge = document.getElementById("backend-status");
@@ -224,46 +301,33 @@ document.addEventListener("DOMContentLoaded", () => {
       errorText ? `\n[Error Log]:\n${errorText}` : ""
     ].filter(Boolean).join("\n");
 
+       const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 150000);
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: combinedQuery })
+        body: JSON.stringify({ query: combinedQuery }),
+        signal: controller.signal
       });
 
-      removeThinkingIndicator(thinkingId);
-      askBtn.disabled = false;
+      if (!response.ok) throw new Error(`Server status ${response.status}`);
 
-      if (response.ok) {
-        const data = await response.json();
-        const serverReply = data.reply || "";
-        
-        // If the backend returned default starter template text, enrich it with persistent memory context
-        if (serverReply.startsWith("Received: '")) {
-          const enrichedReply = generateContextualReply(prompt, code, errorText);
-          appendAssistantMessage(enrichedReply);
-        } else {
-          appendAssistantMessage({
-            recalledId: "MEM-004",
-            recalledTitle: "Persistent Context Applied",
-            summary: serverReply,
-            codeSnippet: null
-          });
-        }
-      } else {
-        throw new Error(`Server status ${response.status}`);
-      }
+      const data = await response.json();
+      appendBackendReply(data, combinedQuery);
     } catch (err) {
+      console.warn("DevMind API error:", err);
+      const msg = err.name === "AbortError"
+        ? "The request timed out. Is Ollama running?"
+        : "Could not reach the backend: " + err.message;
+      appendBackendReply({ reply: "⚠️ " + msg, isError: true });
+    } finally {
+      clearTimeout(timer);
       removeThinkingIndicator(thinkingId);
       askBtn.disabled = false;
-      console.warn("DevMind API connection notice:", err.message);
-
-      // Intelligent simulated assistant response using local persistent memory knowledge
-      const fallbackReply = generateContextualReply(prompt, code, errorText);
-      appendAssistantMessage(fallbackReply);
     }
-  }
-
+   } 
   function getActiveCategory() {
     const activeTab = document.querySelector(".filter-tab.active");
     return activeTab ? activeTab.getAttribute("data-filter") : "all";
@@ -522,41 +586,6 @@ function generateContextualReply(prompt, code, errorText) {
     guidance: "You can pin any new architecture rule or bug resolution directly to the Memory Panel on the right to keep it persistent."
   };
 }
-
-/**
- * Render Memory Cards in Sidebar
- */
-function renderMemoryCards() {
-  const container = document.getElementById("memory-cards-container");
-  container.innerHTML = "";
-
-  projectMemories.forEach((mem, index) => {
-    const card = document.createElement("div");
-    card.className = "memory-card";
-    card.setAttribute("data-category", "architecture");
-
-    const top = document.createElement("div");
-    top.className = "card-top";
-    top.textContent = `#Hindsight | Memory ${index + 1}`;
-
-    const title = document.createElement("h4");
-    title.textContent = mem.title;
-
-    const content = document.createElement("p");
-    content.textContent = mem.content;
-
-    const footer = document.createElement("div");
-    footer.className = "card-footer";
-    footer.textContent = "Retrieved from persistent Hindsight memory";
-
-    card.append(top, title, content, footer);
-    container.appendChild(card);
-  });
-
-  const badge = document.getElementById("memory-count-badge");
-  if (badge) badge.textContent = `${projectMemories.length} active`;
-}
-
 async function loadHindsightMemories() {
   const container = document.getElementById("memory-cards-container");
 
@@ -568,6 +597,40 @@ async function loadHindsightMemories() {
         query: "DevMind AI project architecture, technology stack and verified debugging solutions"
       })
     });
+function renderMemoryCards() {
+  const container = document.getElementById("memory-cards-container");
+  const countBadge = document.getElementById("memory-count-badge");
+
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (!projectMemories.length) {
+    container.textContent = "No memories found.";
+    if (countBadge) countBadge.textContent = "0 active";
+    return;
+  }
+
+  projectMemories.forEach((memory, index) => {
+    const card = document.createElement("div");
+    card.className = "memory-card";
+    card.setAttribute("data-category", "all");
+
+    const title = document.createElement("h4");
+    title.textContent = memory.title || `Hindsight Memory ${index + 1}`;
+
+    const body = document.createElement("p");
+    body.textContent = memory.content || "";
+
+    card.appendChild(title);
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+
+  if (countBadge) {
+    countBadge.textContent = `${projectMemories.length} active`;
+  }
+}
 
     if (!response.ok) throw new Error("Memory retrieval failed.");
 
@@ -584,6 +647,8 @@ async function loadHindsightMemories() {
     container.textContent = "Unable to load Hindsight memories. Check backend connection.";
   }
 }
+
+    
 
 /**
  * One-Click Copy Code Handler
@@ -614,3 +679,4 @@ if (document.readyState === "loading") {
 } else {
   loadHindsightMemories();
 }
+ 
