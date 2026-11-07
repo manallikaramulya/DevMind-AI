@@ -6,48 +6,7 @@
 const API_BASE_URL = "http://127.0.0.1:8000";
 
 // Project Memories Database (Local In-Memory Cache)
-let projectMemories = [
-  {
-    id: "MEM-004",
-    title: "SQLAlchemy 2.0 Async Session Rules",
-    category: "architecture",
-    tagClass: "tag-purple",
-    tagLabel: "#Architecture",
-    content: "Database sessions in request handlers must be short-lived. Avoid holding session locks during async worker tasks or external API calls.",
-    updated: "Updated 2 days ago",
-    confidence: "Confidence: 99%"
-  },
-  {
-    id: "MEM-007",
-    title: "Redis Token Blacklist Race Condition",
-    category: "bugs",
-    tagClass: "tag-cyan",
-    tagLabel: "#Bug Fix",
-    content: "Resolved simultaneous logout requests by implementing Redis SETNX with a 15-minute TTL rather than sequential read-then-write keys.",
-    updated: "Updated 5 days ago",
-    confidence: "Confidence: 95%"
-  },
-  {
-    id: "MEM-011",
-    title: "Stripe Webhook Idempotency Standard",
-    category: "rules",
-    tagClass: "tag-purple",
-    tagLabel: "#Rules",
-    content: "All webhook endpoints must check event_id in the Postgres processed_webhooks table before dispatching payment events.",
-    updated: "Updated 1 week ago",
-    confidence: "Confidence: 97%"
-  },
-  {
-    id: "MEM-014",
-    title: "PostgreSQL Connection Pool Constraints",
-    category: "architecture",
-    tagClass: "tag-purple",
-    tagLabel: "#Architecture",
-    content: "Max client pool configured to 5 with overflow 10. PgBouncer runs in transaction pooling mode on port 6432.",
-    updated: "Updated 2 weeks ago",
-    confidence: "Confidence: 100%"
-  }
-];
+let projectMemories = [];
 
 document.addEventListener("DOMContentLoaded", () => {
   // DOM Elements
@@ -200,39 +159,36 @@ document.addEventListener("DOMContentLoaded", () => {
     newMemBody.value = "";
   });
 
-  saveMemBtn.addEventListener("click", () => {
+  saveMemBtn.addEventListener("click", async () => {
     const title = newMemTitle.value.trim();
     const body = newMemBody.value.trim();
+
     if (!title || !body) {
-      alert("Please enter both a title and description for the memory node.");
+      alert("Please enter both a title and description.");
       return;
     }
 
-    const newId = `MEM-0${projectMemories.length + 5}`;
-    const newEntry = {
-      id: newId,
-      title: title,
-      category: "architecture",
-      tagClass: "tag-purple",
-      tagLabel: "#Architecture",
-      content: body,
-      updated: "Just now",
-      confidence: "Confidence: 100%"
-    };
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/memory/retain`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: `${title}: ${body}` })
+      });
 
-    projectMemories.unshift(newEntry);
-    renderMemoryCards();
+      if (!response.ok) throw new Error("Could not save memory.");
 
-    newMemoryForm.classList.add("hidden");
-    addMemoryBtn.style.display = "block";
-    newMemTitle.value = "";
-    newMemBody.value = "";
+      await loadHindsightMemories();
 
-    // Show temporary notification
-    const countBadge = document.getElementById("memory-count-badge");
-    countBadge.textContent = `${projectMemories.length} active`;
+      newMemoryForm.classList.add("hidden");
+      addMemoryBtn.style.display = "block";
+      newMemTitle.value = "";
+      newMemBody.value = "";
+
+      alert("Memory successfully saved to Hindsight!");
+    } catch (error) {
+      alert("Memory save failed: " + error.message);
+    }
   });
-
   // Main Send Action Handler
   async function handleAskDevMind() {
     const prompt = userInput.value.trim();
@@ -272,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: combinedQuery })
+        body: JSON.stringify({ query: combinedQuery })
       });
 
       removeThinkingIndicator(thinkingId);
@@ -574,24 +530,59 @@ function renderMemoryCards() {
   const container = document.getElementById("memory-cards-container");
   container.innerHTML = "";
 
-  projectMemories.forEach((mem) => {
+  projectMemories.forEach((mem, index) => {
     const card = document.createElement("div");
     card.className = "memory-card";
-    card.setAttribute("data-category", mem.category);
-    card.innerHTML = `
-      <div class="card-top">
-        <span class="memory-tag ${mem.tagClass}">${mem.tagLabel}</span>
-        <span class="memory-id">#${mem.id}</span>
-      </div>
-      <h4>${escapeHtml(mem.title)}</h4>
-      <p>${escapeHtml(mem.content)}</p>
-      <div class="card-footer">
-        <span class="card-date">${mem.updated}</span>
-        <span class="card-confidence">${mem.confidence}</span>
-      </div>
-    `;
+    card.setAttribute("data-category", "architecture");
+
+    const top = document.createElement("div");
+    top.className = "card-top";
+    top.textContent = `#Hindsight | Memory ${index + 1}`;
+
+    const title = document.createElement("h4");
+    title.textContent = mem.title;
+
+    const content = document.createElement("p");
+    content.textContent = mem.content;
+
+    const footer = document.createElement("div");
+    footer.className = "card-footer";
+    footer.textContent = "Retrieved from persistent Hindsight memory";
+
+    card.append(top, title, content, footer);
     container.appendChild(card);
   });
+
+  const badge = document.getElementById("memory-count-badge");
+  if (badge) badge.textContent = `${projectMemories.length} active`;
+}
+
+async function loadHindsightMemories() {
+  const container = document.getElementById("memory-cards-container");
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/memory/recall`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: "DevMind AI project architecture, technology stack and verified debugging solutions"
+      })
+    });
+
+    if (!response.ok) throw new Error("Memory retrieval failed.");
+
+    const data = await response.json();
+
+    projectMemories = (data.memories || []).map((item, index) => ({
+      title: `Hindsight Memory ${index + 1}`,
+      content: String(item)
+    }));
+
+    renderMemoryCards();
+  } catch (error) {
+    console.error("Hindsight memory loading failed:", error);
+    container.textContent = "Unable to load Hindsight memories. Check backend connection.";
+  }
 }
 
 /**
@@ -616,4 +607,10 @@ function copyCode(button) {
   }).catch((err) => {
     console.error("Clipboard copy failed:", err);
   });
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", loadHindsightMemories);
+} else {
+  loadHindsightMemories();
 }
